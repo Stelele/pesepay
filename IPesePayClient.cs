@@ -55,10 +55,11 @@ public interface IPesePayClient
     /// <param name="payment">The payment to process.</param>
     /// <param name="reason">Reason for the payment.</param>
     /// <param name="amount">The payment amount.</param>
+    /// <param name="merchantReference">Your merchant reference for this transaction (required).</param>
     /// <param name="fields">Optional method-specific required fields.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A result containing the reference number, poll URL, and payment status on success.</returns>
-    Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(Payment payment, string reason, decimal amount, Dictionary<string, string>? fields = null, CancellationToken ct = default);
+    Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(Payment payment, string reason, decimal amount, string merchantReference, Dictionary<string, string>? fields = null, CancellationToken ct = default);
 
     /// <summary>
     /// Checks the status of a payment by its reference number.
@@ -73,4 +74,17 @@ public interface IPesePayClient
     /// <param name="pollUrl">The poll URL from the payment response.</param>
     /// <param name="ct">Cancellation token.</param>
     Task<PesepayResult<PaymentStatus>> PollTransactionAsync(Uri pollUrl, CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets the currently active currencies on the PesePay gateway.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    Task<PesepayResult<List<CurrencyInfo>>> GetActiveCurrenciesAsync(CancellationToken ct = default);
+
+    /// <summary>
+    /// Gets payment methods available for a given currency.
+    /// </summary>
+    /// <param name="currencyCode">The currency code (e.g. "USD" or "ZWL").</param>
+    /// <param name="ct">Cancellation token.</param>
+    Task<PesepayResult<List<PaymentMethodInfo>>> GetPaymentMethodsAsync(string currencyCode, CancellationToken ct = default);
 }

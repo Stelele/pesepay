@@ -18,5 +18,7 @@ public class IPesePayClientTests
         Assert.NotNull(type.GetMethod("MakeSeamlessPaymentAsync"));
         Assert.NotNull(type.GetMethod("CheckPaymentStatusAsync"));
         Assert.NotNull(type.GetMethod("PollTransactionAsync"));
+        Assert.NotNull(type.GetMethod("GetActiveCurrenciesAsync"));
+        Assert.NotNull(type.GetMethod("GetPaymentMethodsAsync"));
     }
 }

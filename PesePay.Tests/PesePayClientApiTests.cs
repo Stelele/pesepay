@@ -21,7 +21,7 @@ public class PesePayClientApiTests
     {
         var handler = new FakeHttpMessageHandler();
         var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
-        var expectedResponse = new InitiateResponse("REF001", new Uri("https://poll.example.com/REF001"), new Uri("https://redirect.example.com/REF001"));
+        var expectedResponse = new InitiateResponse("REF001", new Uri("https://poll.example.com/REF001"), new Uri("https://redirect.example.com/REF001"), "INT-001", "INITIATED", 0, "Initiated");
         var responseJson = JsonSerializer.Serialize(expectedResponse, ApiOptions);
         var encryptedResponse = crypto.Encrypt(responseJson);
         var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
@@ -46,6 +46,7 @@ public class PesePayClientApiTests
         Assert.Equal("REF001", result.Data.ReferenceNumber);
         Assert.Equal("https://poll.example.com/REF001", result.Data.PollUrl.ToString());
         Assert.Equal("https://redirect.example.com/REF001", result.Data.RedirectUrl.ToString());
+        Assert.Equal("INT-001", result.Data.InternalReference);
     }
 
     [Fact]
@@ -86,22 +87,22 @@ public class PesePayClientApiTests
     {
         var handler = new FakeHttpMessageHandler();
         var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
-        var expectedResponse = new PaymentResponse("REF002", new Uri("https://poll.example.com/REF002"), null, "SUCCESS");
+        var expectedResponse = new PaymentResponse("REF002", new Uri("https://poll.example.com/REF002"), null, "INT-002", "SUCCESS", 1, "Payment successful");
         var responseJson = JsonSerializer.Serialize(expectedResponse, ApiOptions);
         var encryptedResponse = crypto.Encrypt(responseJson);
         var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
 
         handler.SetResponse(HttpStatusCode.OK, responsePayload);
 
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example.com") };
+        var httpClient = new HttpClient(handler);
         var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox)
         {
             ResultUrl = "https://example.com/result"
         };
 
-        var payment = new Payment(CurrencyCode.Zwl, "ecocash", new Customer("a@b.com", null, null));
+        var payment = new Payment(CurrencyCode.Zwl, "PZW211", new Customer("a@b.com", null, null));
 
-        var result = await client.MakeSeamlessPaymentAsync(payment, "Invoice #456", 500m, new Dictionary<string, string> { { "field1", "val1" } });
+        var result = await client.MakeSeamlessPaymentAsync(payment, "Invoice #456", 500m, "ORDER-001", new Dictionary<string, string> { { "customerPhoneNumber", "0771234567" } });
 
         Assert.True(result.IsSuccess);
         Assert.NotNull(result.Data);
@@ -118,10 +119,10 @@ public class PesePayClientApiTests
         var httpClient = new HttpClient(handler);
         var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
 
-        var payment = new Payment(CurrencyCode.Usd, "visa", new Customer("a@b.com", null, null));
+        var payment = new Payment(CurrencyCode.Usd, "PZW211", new Customer("a@b.com", null, null));
 
         await Assert.ThrowsAsync<PesePayException>(() =>
-            client.MakeSeamlessPaymentAsync(payment, "test", 10m));
+            client.MakeSeamlessPaymentAsync(payment, "test", 10m, "MERCH01"));
     }
 
     [Fact]
@@ -129,14 +130,14 @@ public class PesePayClientApiTests
     {
         var handler = new FakeHttpMessageHandler();
         var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
-        var expectedStatus = new PaymentStatus("REF003", new Uri("https://poll.example.com/REF003"), null, "SUCCESS");
+        var expectedStatus = new PaymentStatus("REF003", new Uri("https://poll.example.com/REF003"), null, "INT-003", "SUCCESS", 1, "Success");
         var responseJson = JsonSerializer.Serialize(expectedStatus, ApiOptions);
         var encryptedResponse = crypto.Encrypt(responseJson);
         var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
 
         handler.SetResponse(HttpStatusCode.OK, responsePayload);
 
-        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example.com") };
+        var httpClient = new HttpClient(handler);
         var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
 
         var result = await client.CheckPaymentStatusAsync("REF003");
@@ -151,7 +152,7 @@ public class PesePayClientApiTests
     {
         var handler = new FakeHttpMessageHandler();
         var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
-        var expectedStatus = new PaymentStatus("REF004", new Uri("https://poll.example.com/REF004"), null, "PENDING");
+        var expectedStatus = new PaymentStatus("REF004", new Uri("https://poll.example.com/REF004"), null, "INT-004", "PENDING", 2, "Pending");
         var responseJson = JsonSerializer.Serialize(expectedStatus, ApiOptions);
         var encryptedResponse = crypto.Encrypt(responseJson);
         var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
@@ -165,6 +166,54 @@ public class PesePayClientApiTests
 
         Assert.True(result.IsSuccess);
         Assert.False(result.Data!.IsPaid);
+    }
+
+    [Fact]
+    public async Task GetActiveCurrenciesAsync_Returns_Currencies()
+    {
+        var expectedCurrencies = new List<CurrencyInfo>
+        {
+            new(true, "USD", true, "United States Dollar", 1, "United States Dollar"),
+            new(true, "ZWL", false, "Zimbabwe Dollar", 2, "Zimbabwe Dollar")
+        };
+
+        var handler = new FakeHttpMessageHandler();
+        var responseJson = JsonSerializer.Serialize(expectedCurrencies, ApiOptions);
+        handler.SetResponse(HttpStatusCode.OK, responseJson);
+
+        var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
+        var httpClient = new HttpClient(handler);
+        var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
+
+        var result = await client.GetActiveCurrenciesAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(2, result.Data!.Count);
+        Assert.Equal("USD", result.Data[0].Code);
+        Assert.Equal("ZWL", result.Data[1].Code);
+    }
+
+    [Fact]
+    public async Task GetPaymentMethodsAsync_Returns_Methods()
+    {
+        var expectedMethods = new List<PaymentMethodInfo>
+        {
+            new(true, "PZW211", new List<string> { "ZWL" }, "EcoCash ZWL", 1, 50000m, 1m, "EcoCash ZWL", "Processing...", true, "https://pay.example.com", new List<PaymentMethodRequiredField>())
+        };
+
+        var handler = new FakeHttpMessageHandler();
+        var responseJson = JsonSerializer.Serialize(expectedMethods, ApiOptions);
+        handler.SetResponse(HttpStatusCode.OK, responseJson);
+
+        var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
+        var httpClient = new HttpClient(handler);
+        var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
+
+        var result = await client.GetPaymentMethodsAsync("ZWL");
+
+        Assert.True(result.IsSuccess);
+        Assert.Single(result.Data!);
+        Assert.Equal("PZW211", result.Data![0].Code);
     }
 }
 

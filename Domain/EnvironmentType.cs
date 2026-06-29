@@ -5,9 +5,9 @@ namespace PesePay.Domain;
 /// </summary>
 public enum EnvironmentType
 {
-    /// <summary>Sandbox/test environment (https://api.test.sandbox.pesepay.com/payments-engine).</summary>
+    /// <summary>Sandbox/test environment.</summary>
     Sandbox,
 
-    /// <summary>Production/live environment (https://api.pesepay.com/api/payments-engine).</summary>
+    /// <summary>Production/live environment.</summary>
     Production
 }

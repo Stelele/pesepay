@@ -97,6 +97,7 @@ var result = await client.MakeSeamlessPaymentAsync(
     payment,
     "Invoice #456",     // reason for payment
     500.00m,            // amount
+    "ORDER-456",        // merchant reference (required)
     fields);
 
 if (result.IsSuccess)
@@ -114,9 +115,11 @@ else
 }
 ```
 
-> Available payment method codes are dynamically provided by the PesePay API. Use the currency and payment method endpoints to obtain active codes:
-> - Currencies: `GET https://api.pesepay.com/api/payments-engine/v1/currencies/active`
-> - Methods: `GET https://api.pesepay.com/api/payments-engine/v1/payment-methods/for-currency?currencyCode=ZWL`
+> Available payment method codes are dynamically provided by the PesePay API:
+> ```csharp
+> var currencies = await client.GetActiveCurrenciesAsync();
+> var methods = await client.GetPaymentMethodsAsync("ZWL");
+> ```
 
 ---
 
@@ -192,6 +195,44 @@ if (result.IsSuccess && result.Data!.IsPaid)
 | Production | `https://api.pesepay.com/api/payments-engine` | `EnvironmentType.Production` |
 
 Sandbox is the default if no environment is specified.
+
+---
+
+## Utility APIs
+
+### Get Active Currencies
+
+```csharp
+var result = await client.GetActiveCurrenciesAsync();
+
+if (result.IsSuccess)
+{
+    foreach (var currency in result.Data!)
+    {
+        Console.WriteLine($"{currency.Code}: {currency.Name} (active: {currency.IsActive})");
+    }
+}
+```
+
+### Get Payment Methods by Currency
+
+```csharp
+var result = await client.GetPaymentMethodsAsync("ZWL");
+
+if (result.IsSuccess)
+{
+    foreach (var method in result.Data!)
+    {
+        Console.WriteLine($"{method.Code}: {method.Name}");
+        Console.WriteLine($"  Min: {method.MinimumAmount}, Max: {method.MaximumAmount}");
+
+        foreach (var field in method.RequiredFields)
+        {
+            Console.WriteLine($"  Required: {field.DisplayName} ({field.FieldType})");
+        }
+    }
+}
+```
 
 ---
 
