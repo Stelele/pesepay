@@ -6,29 +6,29 @@ namespace PesePay.Domain.Tests;
 public class CurrencyCodeTests
 {
     [Fact]
-    public void CurrencyCode_Serializes_To_Correct_String()
+    public void CurrencyCode_Serializes_As_Member_Name()
     {
         var options = new JsonSerializerOptions
         {
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
+            Converters = { new JsonStringEnumConverter() }
         };
 
-        var json = JsonSerializer.Serialize(CurrencyCode.Usd, options);
+        var json = JsonSerializer.Serialize(CurrencyCode.USD, options);
 
-        Assert.Equal("\"usd\"", json);
+        Assert.Equal("\"USD\"", json);
     }
 
     [Fact]
-    public void CurrencyCode_Zwl_Serializes_To_zwl()
+    public void CurrencyCode_ZWL_Serializes_As_ZWL()
     {
         var options = new JsonSerializerOptions
         {
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
+            Converters = { new JsonStringEnumConverter() }
         };
 
-        var json = JsonSerializer.Serialize(CurrencyCode.Zwl, options);
+        var json = JsonSerializer.Serialize(CurrencyCode.ZWL, options);
 
-        Assert.Equal("\"zwl\"", json);
+        Assert.Equal("\"ZWL\"", json);
     }
 
     [Fact]
@@ -36,11 +36,11 @@ public class CurrencyCodeTests
     {
         var options = new JsonSerializerOptions
         {
-            Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
+            Converters = { new JsonStringEnumConverter() }
         };
 
-        var result = JsonSerializer.Deserialize<CurrencyCode>("\"zwl\"", options);
+        var result = JsonSerializer.Deserialize<CurrencyCode>("\"ZWL\"", options);
 
-        Assert.Equal(CurrencyCode.Zwl, result);
+        Assert.Equal(CurrencyCode.ZWL, result);
     }
 }

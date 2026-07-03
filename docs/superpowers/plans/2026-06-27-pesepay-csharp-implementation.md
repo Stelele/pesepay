@@ -129,7 +129,7 @@ public class CurrencyCodeTests
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
         };
 
-        var json = JsonSerializer.Serialize(CurrencyCode.Usd, options);
+        var json = JsonSerializer.Serialize(CurrencyCode.USD, options);
 
         Assert.Equal("\"usd\"", json);
     }
@@ -142,7 +142,7 @@ public class CurrencyCodeTests
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) }
         };
 
-        var json = JsonSerializer.Serialize(CurrencyCode.Zwl, options);
+        var json = JsonSerializer.Serialize(CurrencyCode.ZWL, options);
 
         Assert.Equal("\"zwl\"", json);
     }
@@ -157,7 +157,7 @@ public class CurrencyCodeTests
 
         var result = JsonSerializer.Deserialize<CurrencyCode>("\"zwl\"", options);
 
-        Assert.Equal(CurrencyCode.Zwl, result);
+        Assert.Equal(CurrencyCode.ZWL, result);
     }
 }
 ```
@@ -362,7 +362,7 @@ public class AmountTests
     [Fact]
     public void Amount_Serializes_With_SnakeCase()
     {
-        var amount = new Amount(10.50m, CurrencyCode.Usd);
+        var amount = new Amount(10.50m, CurrencyCode.USD);
         var options = new JsonSerializerOptions
         {
             PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -378,9 +378,9 @@ public class AmountTests
     [Fact]
     public void Amount_Equality_Is_Value_Based()
     {
-        var a1 = new Amount(10m, CurrencyCode.Usd);
-        var a2 = new Amount(10m, CurrencyCode.Usd);
-        var a3 = new Amount(20m, CurrencyCode.Usd);
+        var a1 = new Amount(10m, CurrencyCode.USD);
+        var a2 = new Amount(10m, CurrencyCode.USD);
+        var a3 = new Amount(20m, CurrencyCode.USD);
 
         Assert.Equal(a1, a2);
         Assert.NotEqual(a1, a3);
@@ -563,8 +563,8 @@ public class TransactionTests
     public void Transaction_Default_Type_Is_Basic()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test payment");
 
         Assert.Equal(TransactionType.Basic, txn.Type);
@@ -574,8 +574,8 @@ public class TransactionTests
     public void Transaction_Serializes_With_SnakeCase()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test payment",
             "MERCH001");
 
@@ -592,8 +592,8 @@ public class TransactionTests
     public void Transaction_ResultUrl_And_ReturnUrl_Settable()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test");
 
         txn.ResultUrl = "https://example.com/result";
@@ -607,8 +607,8 @@ public class TransactionTests
     public void Transaction_ResultUrl_Serializes_When_Set()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test")
         {
             ResultUrl = "https://example.com/result",
@@ -688,9 +688,9 @@ public class PaymentTests
     public void Payment_Created_With_Required_Fields()
     {
         var customer = new Customer("a@b.com", null, null);
-        var payment = new Payment(CurrencyCode.Usd, "ecocash", customer);
+        var payment = new Payment(CurrencyCode.USD, "ecocash", customer);
 
-        Assert.Equal(CurrencyCode.Usd, payment.CurrencyCode);
+        Assert.Equal(CurrencyCode.USD, payment.CurrencyCode);
         Assert.Equal("ecocash", payment.PaymentMethodCode);
         Assert.Equal(customer, payment.Customer);
     }
@@ -699,10 +699,10 @@ public class PaymentTests
     public void Payment_Serializes_Correctly()
     {
         var customer = new Customer("a@b.com", "123", "John");
-        var payment = new Payment(CurrencyCode.Zwl, "ecocash", customer)
+        var payment = new Payment(CurrencyCode.ZWL, "ecocash", customer)
         {
             ReasonForPayment = "Invoice #123",
-            AmountDetails = new Amount(500m, CurrencyCode.Zwl),
+            AmountDetails = new Amount(500m, CurrencyCode.ZWL),
             ResultUrl = "https://ex.com/result",
             ReturnUrl = "https://ex.com/return",
             RequiredFields = new Dictionary<string, string> { { "field1", "value1" } }
@@ -722,7 +722,7 @@ public class PaymentTests
     public void Payment_Optional_Fields_Omitted_When_Null()
     {
         var customer = new Customer("a@b.com", null, null);
-        var payment = new Payment(CurrencyCode.Usd, "ecocash", customer);
+        var payment = new Payment(CurrencyCode.USD, "ecocash", customer);
 
         var json = JsonSerializer.Serialize(payment, ApiOptions);
 
@@ -1388,11 +1388,11 @@ public class PesePayClientFactoryTests
     [Fact]
     public void CreateTransaction_Returns_Transaction_With_Correct_Values()
     {
-        var txn = _client.CreateTransaction(100m, CurrencyCode.Usd, "Payment for order", "ORDER-001");
+        var txn = _client.CreateTransaction(100m, CurrencyCode.USD, "Payment for order", "ORDER-001");
 
         Assert.Equal(100m, txn.AmountDetails.Value);
-        Assert.Equal(CurrencyCode.Usd, txn.AmountDetails.Currency);
-        Assert.Equal(CurrencyCode.Usd, txn.CurrencyCode);
+        Assert.Equal(CurrencyCode.USD, txn.AmountDetails.Currency);
+        Assert.Equal(CurrencyCode.USD, txn.CurrencyCode);
         Assert.Equal("Payment for order", txn.ReasonForPayment);
         Assert.Equal("ORDER-001", txn.MerchantReference);
         Assert.Equal(TransactionType.Basic, txn.Type);
@@ -1401,9 +1401,9 @@ public class PesePayClientFactoryTests
     [Fact]
     public void CreatePayment_Returns_Payment_With_Correct_Values()
     {
-        var payment = _client.CreatePayment(CurrencyCode.Zwl, "ecocash", "a@b.com", "123", "John");
+        var payment = _client.CreatePayment(CurrencyCode.ZWL, "ecocash", "a@b.com", "123", "John");
 
-        Assert.Equal(CurrencyCode.Zwl, payment.CurrencyCode);
+        Assert.Equal(CurrencyCode.ZWL, payment.CurrencyCode);
         Assert.Equal("ecocash", payment.PaymentMethodCode);
         Assert.Equal("a@b.com", payment.Customer.Email);
         Assert.Equal("123", payment.Customer.PhoneNumber);
@@ -1413,7 +1413,7 @@ public class PesePayClientFactoryTests
     [Fact]
     public void CreatePayment_With_Email_Only()
     {
-        var payment = _client.CreatePayment(CurrencyCode.Usd, "visa", "a@b.com", null, null);
+        var payment = _client.CreatePayment(CurrencyCode.USD, "visa", "a@b.com", null, null);
 
         Assert.Equal("a@b.com", payment.Customer.Email);
         Assert.Null(payment.Customer.PhoneNumber);
@@ -1568,8 +1568,8 @@ public class PesePayClientApiTests
         };
 
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test payment");
 
         var result = await client.InitiateTransactionAsync(txn);
@@ -1590,8 +1590,8 @@ public class PesePayClientApiTests
         var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
 
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test");
 
         await Assert.ThrowsAsync<PesePayException>(() => client.InitiateTransactionAsync(txn));
@@ -1609,8 +1609,8 @@ public class PesePayClientApiTests
         };
 
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
-            CurrencyCode.Usd,
+            new Amount(10m, CurrencyCode.USD),
+            CurrencyCode.USD,
             "Test");
 
         await Assert.ThrowsAsync<PesePayException>(() => client.InitiateTransactionAsync(txn));
@@ -1739,7 +1739,7 @@ public async Task MakeSeamlessPaymentAsync_Sends_Encrypted_Payload()
         ResultUrl = "https://example.com/result"
     };
 
-    var payment = new Payment(CurrencyCode.Zwl, "ecocash", new Customer("a@b.com", null, null));
+    var payment = new Payment(CurrencyCode.ZWL, "ecocash", new Customer("a@b.com", null, null));
 
     var result = await client.MakeSeamlessPaymentAsync(payment, "Invoice #456", 500m, new Dictionary<string, string> { { "field1", "val1" } });
 
@@ -1758,7 +1758,7 @@ public async Task MakeSeamlessPaymentAsync_Throws_When_ResultUrl_Missing()
     var httpClient = new HttpClient(handler);
     var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
 
-    var payment = new Payment(CurrencyCode.Usd, "visa", new Customer("a@b.com", null, null));
+    var payment = new Payment(CurrencyCode.USD, "visa", new Customer("a@b.com", null, null));
 
     await Assert.ThrowsAsync<PesePayException>(() =>
         client.MakeSeamlessPaymentAsync(payment, "test", 10m));

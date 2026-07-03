@@ -49,3 +49,6 @@ package-lock.json
 package.json
 
 .superpowers
+
+# Integration test secrets
+*.sandbox.env

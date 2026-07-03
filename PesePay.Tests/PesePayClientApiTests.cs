@@ -11,8 +11,8 @@ public class PesePayClientApiTests
 {
     private static JsonSerializerOptions ApiOptions => new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -36,7 +36,7 @@ public class PesePayClientApiTests
         };
 
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test payment");
 
         var result = await client.InitiateTransactionAsync(txn);
@@ -58,7 +58,7 @@ public class PesePayClientApiTests
         var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
 
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test");
 
         await Assert.ThrowsAsync<PesePayException>(() => client.InitiateTransactionAsync(txn));
@@ -76,7 +76,7 @@ public class PesePayClientApiTests
         };
 
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test");
 
         await Assert.ThrowsAsync<PesePayException>(() => client.InitiateTransactionAsync(txn));
@@ -100,7 +100,7 @@ public class PesePayClientApiTests
             ResultUrl = "https://example.com/result"
         };
 
-        var payment = new Payment(CurrencyCode.Zwl, "PZW211", new Customer("a@b.com", null, null));
+        var payment = new Payment(CurrencyCode.ZWL, "PZW211", new Customer("a@b.com", null, null));
 
         var result = await client.MakeSeamlessPaymentAsync(payment, "Invoice #456", 500m, "ORDER-001", new Dictionary<string, string> { { "customerPhoneNumber", "0771234567" } });
 
@@ -119,7 +119,7 @@ public class PesePayClientApiTests
         var httpClient = new HttpClient(handler);
         var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
 
-        var payment = new Payment(CurrencyCode.Usd, "PZW211", new Customer("a@b.com", null, null));
+        var payment = new Payment(CurrencyCode.USD, "PZW211", new Customer("a@b.com", null, null));
 
         await Assert.ThrowsAsync<PesePayException>(() =>
             client.MakeSeamlessPaymentAsync(payment, "test", 10m, "MERCH01"));

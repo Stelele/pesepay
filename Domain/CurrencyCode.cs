@@ -12,9 +12,9 @@ public enum CurrencyCode
 {
     /// <summary>United States Dollar</summary>
     [EnumMember(Value = "USD")]
-    Usd,
+    USD,
 
     /// <summary>Zimbabwe Dollar (ZWL)</summary>
     [EnumMember(Value = "ZWL")]
-    Zwl
+    ZWL
 }

@@ -10,8 +10,8 @@ public class PesePayClient : IPesePayClient
 {
     private static readonly JsonSerializerOptions _jsonOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        Converters = { new JsonStringEnumConverter() },
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
@@ -48,17 +48,22 @@ public class PesePayClient : IPesePayClient
 
     private static string GetBaseUrl(EnvironmentType environment) => environment switch
     {
-        EnvironmentType.Production => "https://api.pesepay.com/api/payments-engine",
-        EnvironmentType.Sandbox => "https://api.test.sandbox.pesepay.com/payments-engine",
+        EnvironmentType.Production => "https://api.pesepay.com/api/payments-engine/",
+        EnvironmentType.Sandbox => "https://api.test.sandbox.pesepay.com/payments-engine/",
         _ => throw new ArgumentOutOfRangeException(nameof(environment))
     };
 
-    private string MakePaymentPath => _environment switch
+    private string MakePaymentPath => "v2/payments/make-payment";
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response)
     {
-        EnvironmentType.Production => "/v2/payments/make-payment",
-        EnvironmentType.Sandbox => "/v1/payments/make-payment",
-        _ => throw new ArgumentOutOfRangeException(nameof(_environment))
-    };
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException(
+                $"Response status code does not indicate success: {(int)response.StatusCode} ({response.ReasonPhrase}). Body: {body}");
+        }
+    }
 
     public Transaction CreateTransaction(decimal amount, CurrencyCode currency, string reason, string? merchantRef = null)
     {
@@ -94,8 +99,8 @@ public class PesePayClient : IPesePayClient
                 Encoding.UTF8,
                 "application/json");
 
-            var response = await _httpClient.PostAsync("/v1/payments/initiate", content, ct);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.PostAsync("v1/payments/initiate", content, ct);
+            await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
             var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
@@ -136,7 +141,7 @@ public class PesePayClient : IPesePayClient
                 "application/json");
 
             var response = await _httpClient.PostAsync(MakePaymentPath, content, ct);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
             var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
@@ -153,7 +158,7 @@ public class PesePayClient : IPesePayClient
 
     public async Task<PesepayResult<PaymentStatus>> CheckPaymentStatusAsync(string referenceNumber, CancellationToken ct = default)
     {
-        var url = $"/v1/payments/check-payment?referenceNumber={Uri.EscapeDataString(referenceNumber)}";
+        var url = $"v1/payments/check-payment?referenceNumber={Uri.EscapeDataString(referenceNumber)}";
         return await PollTransactionAsync(new Uri(url, UriKind.Relative), ct);
     }
 
@@ -162,7 +167,7 @@ public class PesePayClient : IPesePayClient
         try
         {
             var response = await _httpClient.GetAsync(pollUrl, ct);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
             var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
@@ -181,8 +186,8 @@ public class PesePayClient : IPesePayClient
     {
         try
         {
-            var response = await _httpClient.GetAsync("/v1/currencies/active", ct);
-            response.EnsureSuccessStatusCode();
+            var response = await _httpClient.GetAsync("v1/currencies/active", ct);
+            await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
             var result = JsonSerializer.Deserialize<List<CurrencyInfo>>(responseBody, _jsonOptions)!;
@@ -199,9 +204,9 @@ public class PesePayClient : IPesePayClient
     {
         try
         {
-            var url = $"/v1/payment-methods/for-currency?currencyCode={Uri.EscapeDataString(currencyCode)}";
+            var url = $"v1/payment-methods/for-currency?currencyCode={Uri.EscapeDataString(currencyCode)}";
             var response = await _httpClient.GetAsync(url, ct);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
             var result = JsonSerializer.Deserialize<List<PaymentMethodInfo>>(responseBody, _jsonOptions)!;

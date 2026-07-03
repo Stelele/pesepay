@@ -30,7 +30,7 @@ client.ResultUrl = "https://example.com/result";
 client.ReturnUrl = "https://example.com/return";
 ```
 
-> **Note:** PesePay only supports two currencies — `CurrencyCode.Usd` (USD) and `CurrencyCode.Zwl` (ZWL).
+> **Note:** PesePay only supports two currencies — `CurrencyCode.USD` (USD) and `CurrencyCode.ZWL` (ZWL).
 
 ---
 
@@ -72,7 +72,7 @@ Create a payment object (customer email or phone number must be provided):
 
 ```csharp
 var payment = client.CreatePayment(
-    CurrencyCode.Zwl,
+    CurrencyCode.ZWL,
     "ecocash",
     email: "customer@example.com",
     phone: null,
@@ -130,7 +130,7 @@ Create a transaction:
 ```csharp
 var transaction = client.CreateTransaction(
     100.00m,                    // amount
-    CurrencyCode.Usd,           // currency
+    CurrencyCode.USD,           // currency
     "Payment for order #789",   // reason
     "ORDER-789");               // optional merchant reference
 ```
@@ -290,9 +290,9 @@ catch (OperationCanceledException)
 
 ### Amount
 ```csharp
-var amount = new Amount(10.50m, CurrencyCode.Usd);
+var amount = new Amount(10.50m, CurrencyCode.USD);
 // amount.Value → 10.50
-// amount.Currency → CurrencyCode.Usd
+// amount.Currency → CurrencyCode.USD
 ```
 
 ### Customer
@@ -304,17 +304,17 @@ var customer = new Customer("email@example.com", "0771234567", "John Doe");
 ### Transaction
 ```csharp
 var txn = new Transaction(
-    new Amount(100m, CurrencyCode.Usd),
+    new Amount(100m, CurrencyCode.USD),
     "Payment reason",
     "MERCHANT-REF-001");
 ```
 
 ### Payment
 ```csharp
-var payment = new Payment(CurrencyCode.Zwl, "ecocash", customer)
+var payment = new Payment(CurrencyCode.ZWL, "ecocash", customer)
 {
     ReasonForPayment = "Invoice #123",
-    AmountDetails = new Amount(500m, CurrencyCode.Zwl),
+    AmountDetails = new Amount(500m, CurrencyCode.ZWL),
     ReferenceNumber = "REF-456"
 };
 ```

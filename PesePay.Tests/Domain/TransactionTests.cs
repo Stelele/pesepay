@@ -16,7 +16,7 @@ public class TransactionTests
     public void Transaction_Default_Type_Is_Basic()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test payment");
 
         Assert.Equal(TransactionType.Basic, txn.Type);
@@ -26,7 +26,7 @@ public class TransactionTests
     public void Transaction_Serializes_With_SnakeCase()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test payment",
             "MERCH001");
 
@@ -43,7 +43,7 @@ public class TransactionTests
     public void Transaction_ResultUrl_And_ReturnUrl_Settable()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test");
 
         txn.ResultUrl = "https://example.com/result";
@@ -57,7 +57,7 @@ public class TransactionTests
     public void Transaction_ResultUrl_Serializes_When_Set()
     {
         var txn = new Transaction(
-            new Amount(10m, CurrencyCode.Usd),
+            new Amount(10m, CurrencyCode.USD),
             "Test")
         {
             ResultUrl = "https://example.com/result",

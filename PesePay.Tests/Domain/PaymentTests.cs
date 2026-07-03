@@ -16,9 +16,9 @@ public class PaymentTests
     public void Payment_Created_With_Required_Fields()
     {
         var customer = new Customer("a@b.com", null, null);
-        var payment = new Payment(CurrencyCode.Usd, "ecocash", customer);
+        var payment = new Payment(CurrencyCode.USD, "ecocash", customer);
 
-        Assert.Equal(CurrencyCode.Usd, payment.CurrencyCode);
+        Assert.Equal(CurrencyCode.USD, payment.CurrencyCode);
         Assert.Equal("ecocash", payment.PaymentMethodCode);
         Assert.Equal(customer, payment.Customer);
     }
@@ -27,10 +27,10 @@ public class PaymentTests
     public void Payment_Serializes_Correctly()
     {
         var customer = new Customer("a@b.com", "123", "John");
-        var payment = new Payment(CurrencyCode.Zwl, "ecocash", customer)
+        var payment = new Payment(CurrencyCode.ZWL, "ecocash", customer)
         {
             ReasonForPayment = "Invoice #123",
-            AmountDetails = new Amount(500m, CurrencyCode.Zwl),
+            AmountDetails = new Amount(500m, CurrencyCode.ZWL),
             ResultUrl = "https://ex.com/result",
             ReturnUrl = "https://ex.com/return",
             PaymentMethodRequiredFields = new Dictionary<string, string> { { "field1", "value1" } },
@@ -52,7 +52,7 @@ public class PaymentTests
     public void Payment_Optional_Fields_Omitted_When_Null()
     {
         var customer = new Customer("a@b.com", null, null);
-        var payment = new Payment(CurrencyCode.Usd, "ecocash", customer);
+        var payment = new Payment(CurrencyCode.USD, "ecocash", customer);
 
         var json = JsonSerializer.Serialize(payment, ApiOptions);
 
