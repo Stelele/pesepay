@@ -32,6 +32,19 @@ public class CurrencyCodeTests
     }
 
     [Fact]
+    public void CurrencyCode_ZiG_Serializes_As_ZiG()
+    {
+        var options = new JsonSerializerOptions
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var json = JsonSerializer.Serialize(CurrencyCode.ZiG, options);
+
+        Assert.Equal("\"ZiG\"", json);
+    }
+
+    [Fact]
     public void CurrencyCode_Deserializes_From_String()
     {
         var options = new JsonSerializerOptions
@@ -42,5 +55,18 @@ public class CurrencyCodeTests
         var result = JsonSerializer.Deserialize<CurrencyCode>("\"ZWL\"", options);
 
         Assert.Equal(CurrencyCode.ZWL, result);
+    }
+
+    [Fact]
+    public void CurrencyCode_ZiG_Deserializes_From_String()
+    {
+        var options = new JsonSerializerOptions
+        {
+            Converters = { new JsonStringEnumConverter() }
+        };
+
+        var result = JsonSerializer.Deserialize<CurrencyCode>("\"ZiG\"", options);
+
+        Assert.Equal(CurrencyCode.ZiG, result);
     }
 }

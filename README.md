@@ -23,14 +23,135 @@ Create an instance of `PesePayClient` using your Pesepay integration key and enc
 var client = new PesePayClient("YOUR_INTEGRATION_KEY", "YOUR_ENCRYPTION_KEY", EnvironmentType.Sandbox);
 ```
 
-Set the return and result URLs:
+> **Note:** PesePay supports `CurrencyCode.USD`, `CurrencyCode.ZiG` (Zimbabwe Gold), and `CurrencyCode.ZWL` (Zimbabwe Dollar — deprecated, replaced by ZiG).
+
+---
+
+## Quick Start: Redirect Payment
+
+The simplest way to initiate a redirect (hosted checkout) payment — one call with URLs passed inline:
+
+```csharp
+var result = await client.InitiateTransactionAsync(
+    100m, CurrencyCode.USD, "Payment for order #789", "ORDER-789",
+    resultUrl: "https://example.com/result",
+    returnUrl: "https://example.com/return");
+
+if (result.IsSuccess)
+{
+    var data = result.Data!;
+    var referenceNumber = data.ReferenceNumber;      // Save this for status checking
+    var pollUrl = data.PollUrl;
+    var redirectUrl = data.RedirectUrl;
+
+    return Redirect(data.RedirectUrl.ToString());    // Send customer to PesePay checkout
+}
+```
+
+## Quick Start: Seamless Mobile Money Payment
+
+For mobile money (EcoCash, InnBucks) — just pass the phone number. No field dictionaries needed:
 
 ```csharp
 client.ResultUrl = "https://example.com/result";
-client.ReturnUrl = "https://example.com/return";
+
+var result = await client.MakeSeamlessPaymentAsync(
+    PaymentMethodCode.EcoCash, CurrencyCode.ZWL, 500m,
+    phoneNumber: "0771234567",
+    customerName: "John Doe",
+    reason: "Invoice #456",
+    merchantReference: "ORDER-456");
+
+if (result.IsSuccess && result.Data!.IsPaid)
+{
+    var referenceNumber = result.Data.ReferenceNumber;
+}
 ```
 
-> **Note:** PesePay only supports two currencies — `CurrencyCode.USD` (USD) and `CurrencyCode.ZWL` (ZWL).
+## Quick Start: Seamless Card Payment
+
+For card payments (Visa, CABS) — typed card details:
+
+```csharp
+client.ResultUrl = "https://example.com/result";
+
+var card = new CardDetails(
+    number: "4867960000005461",
+    cvv: "608",
+    expiryDate: "12/30",
+    holderName: "John Doe");
+
+var result = await client.MakeSeamlessCardPaymentAsync(
+    PaymentMethodCode.EcoCash, CurrencyCode.USD, 10m,
+    card,
+    email: "john@example.com",
+    customerName: "John Doe",
+    reason: "Card payment",
+    merchantReference: "ORDER-789");
+```
+
+---
+
+## Available Payment Methods
+
+Known methods with their PesePay codes per currency:
+
+| Enum Value | USD | ZiG |
+|-----------|-----|-----|
+| `PaymentMethodCode.EcoCash` | `PZW211` | `PZW201` |
+| `PaymentMethodCode.InnBucks` | `PZW212` | — |
+| `PaymentMethodCode.Visa` | `PZW204` | — |
+| `PaymentMethodCode.MasterCard` | `PZW205` | — |
+| `PaymentMethodCode.Zimswitch` | `PZW215` | — |
+| `PaymentMethodCode.Omari` | `PZW216` | — |
+| `PaymentMethodCode.PayGo` | — | `PZW210` |
+
+Codes are resolved automatically from the `(method, currency)` pair. An unsupported combination throws `PesePayException`:
+```csharp
+client.CreatePayment(CurrencyCode.USD, PaymentMethodCode.PayGo, customer);
+// throws: "Payment method PayGo is not available for USD."
+```
+
+Additional methods can be discovered dynamically:
+
+```csharp
+var result = await client.GetPaymentMethodsAsync("ZWL");
+foreach (var method in result.Data!)
+    Console.WriteLine($"{method.Code}: {method.Name}");
+```
+
+For methods not in the enum, use the raw string-based API:
+
+```csharp
+var payment = client.CreatePayment(CurrencyCode.ZWL, methodCode: "PZW215", email: null, phone: "0771234567", name: "John");
+var result = await client.MakeSeamlessPaymentAsync(payment, "reason", 100m, "REF001", fields);
+```
+
+---
+
+## Checking Payment Status
+
+### By reference number
+
+```csharp
+var result = await client.CheckPaymentStatusAsync("REF123");
+
+if (result.IsSuccess && result.Data!.IsPaid)
+{
+    // Payment was successful
+}
+```
+
+### By poll URL
+
+```csharp
+var result = await client.PollTransactionAsync(new Uri("https://api.pesepay.com/..."));
+
+if (result.IsSuccess && result.Data!.IsPaid)
+{
+    // Payment was successful
+}
+```
 
 ---
 
@@ -66,123 +187,35 @@ public class PaymentController : ControllerBase
 
 ---
 
-## Making a Seamless Payment
+## Advanced: Low-Level API
 
-Create a payment object (customer email or phone number must be provided):
+The convenience methods are built on top of a lower-level API. Use these when you need full control over request fields.
 
-```csharp
-var payment = client.CreatePayment(
-    CurrencyCode.ZWL,
-    "ecocash",
-    email: "customer@example.com",
-    phone: null,
-    name: "John Doe");
-```
-
-**Optional:** specify additional required fields for the payment method:
-
-```csharp
-var fields = new Dictionary<string, string>
-{
-    { "ecocashNumber", "0771234567" }
-};
-```
-
-Send the payment:
-
-```csharp
-client.ResultUrl = "https://example.com/result";
-
-var result = await client.MakeSeamlessPaymentAsync(
-    payment,
-    "Invoice #456",     // reason for payment
-    500.00m,            // amount
-    "ORDER-456",        // merchant reference (required)
-    fields);
-
-if (result.IsSuccess)
-{
-    var data = result.Data!;
-    var referenceNumber = data.ReferenceNumber;
-    var pollUrl = data.PollUrl;
-    var isPaid = data.IsPaid;
-
-    // Save reference number and/or poll URL to check status later
-}
-else
-{
-    var message = result.ErrorMessage;
-}
-```
-
-> Available payment method codes are dynamically provided by the PesePay API:
-> ```csharp
-> var currencies = await client.GetActiveCurrenciesAsync();
-> var methods = await client.GetPaymentMethodsAsync("ZWL");
-> ```
-
----
-
-## Making a Redirect Payment
-
-Create a transaction:
-
-```csharp
-var transaction = client.CreateTransaction(
-    100.00m,                    // amount
-    CurrencyCode.USD,           // currency
-    "Payment for order #789",   // reason
-    "ORDER-789");               // optional merchant reference
-```
-
-Initiate the transaction to get a redirect URL:
+### Redirect Payment (low-level)
 
 ```csharp
 client.ResultUrl = "https://example.com/result";
 client.ReturnUrl = "https://example.com/return";
 
-var result = await client.InitiateTransactionAsync(transaction);
+var txn = client.CreateTransaction(
+    100m, CurrencyCode.USD, "Payment for order #789", "ORDER-789");
 
-if (result.IsSuccess)
-{
-    var data = result.Data!;
-    var referenceNumber = data.ReferenceNumber;
-    var pollUrl = data.PollUrl;
-    var redirectUrl = data.RedirectUrl;
-
-    // Redirect the customer to redirectUrl to complete payment
-    return Redirect(data.RedirectUrl.ToString());
-}
-else
-{
-    var message = result.ErrorMessage;
-}
+var result = await client.InitiateTransactionAsync(txn);
 ```
 
----
-
-## Checking Payment Status
-
-### Method 1: By reference number
+### Seamless Payment (low-level)
 
 ```csharp
-var result = await client.CheckPaymentStatusAsync("REF123");
+var payment = client.CreatePayment(CurrencyCode.ZWL, "PZW211", email: null, phone: "0771234567", name: "John Doe");
 
-if (result.IsSuccess && result.Data!.IsPaid)
+client.ResultUrl = "https://example.com/result";
+
+var fields = new Dictionary<string, string>
 {
-    // Payment was successful
-}
-```
+    { "customerPhoneNumber", "0771234567" }
+};
 
-### Method 2: By poll URL
-
-```csharp
-var result = await client.PollTransactionAsync(new Uri("https://api.pesepay.com/..."));
-
-if (result.IsSuccess && result.Data!.IsPaid)
-{
-    // Payment was successful
-}
+var result = await client.MakeSeamlessPaymentAsync(payment, "Invoice #456", 500m, "ORDER-456", fields);
 ```
 
 ---
@@ -247,7 +280,10 @@ The library uses a **hybrid error approach**:
 ```csharp
 try
 {
-    var result = await client.InitiateTransactionAsync(transaction);
+    var result = await client.InitiateTransactionAsync(
+        100m, CurrencyCode.USD, "Order #123", "REF001",
+        resultUrl: "https://example.com/result",
+        returnUrl: "https://example.com/return");
 
     if (!result.IsSuccess)
     {
@@ -276,7 +312,8 @@ var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
 try
 {
-    var result = await client.InitiateTransactionAsync(transaction, cts.Token);
+    var result = await client.InitiateTransactionAsync(
+        100m, CurrencyCode.USD, "Order", "REF", "https://...", "https://...", cts.Token);
 }
 catch (OperationCanceledException)
 {
@@ -301,6 +338,15 @@ var customer = new Customer("email@example.com", "0771234567", "John Doe");
 // At least email OR phone number must be provided
 ```
 
+### CardDetails
+```csharp
+var card = new CardDetails("4867960000005461", "608", "12/30", "John Doe");
+// card.Number → "4867960000005461"
+// card.Cvv → "608"
+// card.ExpiryDate → "12/30"
+// card.HolderName → "John Doe" (optional)
+```
+
 ### Transaction
 ```csharp
 var txn = new Transaction(
@@ -311,12 +357,24 @@ var txn = new Transaction(
 
 ### Payment
 ```csharp
-var payment = new Payment(CurrencyCode.ZWL, "ecocash", customer)
+var payment = new Payment(CurrencyCode.ZWL, "PZW211", customer)
 {
     ReasonForPayment = "Invoice #123",
     AmountDetails = new Amount(500m, CurrencyCode.ZWL),
     ReferenceNumber = "REF-456"
 };
+```
+
+### PaymentMethodCode
+```csharp
+// Known methods with compile-time safety
+PaymentMethodCode.EcoCash    // PZW211 (USD) / PZW201 (ZiG)
+PaymentMethodCode.InnBucks   // PZW212 (USD)
+PaymentMethodCode.Visa       // PZW204 (USD)
+PaymentMethodCode.MasterCard // PZW205 (USD)
+PaymentMethodCode.Zimswitch  // PZW215 (USD)
+PaymentMethodCode.Omari      // PZW216 (USD)
+PaymentMethodCode.PayGo      // PZW210 (ZiG)
 ```
 
 ---

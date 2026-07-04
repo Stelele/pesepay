@@ -4,21 +4,24 @@ namespace PesePay.Tests;
 
 public class IPesePayClientTests
 {
-    [Fact]
-    public void Interface_Defines_All_Expected_Members()
+    [Theory]
+    [InlineData("ResultUrl")]
+    [InlineData("ReturnUrl")]
+    [InlineData("CreateTransaction")]
+    [InlineData("CreatePayment")]
+    [InlineData("InitiateTransactionAsync")]
+    [InlineData("MakeSeamlessPaymentAsync")]
+    [InlineData("MakeSeamlessCardPaymentAsync")]
+    [InlineData("CheckPaymentStatusAsync")]
+    [InlineData("PollTransactionAsync")]
+    [InlineData("GetActiveCurrenciesAsync")]
+    [InlineData("GetPaymentMethodsAsync")]
+    public void Interface_Defines_Member(string memberName)
     {
-        var type = typeof(IPesePayClient);
+        var members = typeof(IPesePayClient).GetMembers()
+            .Select(m => m.Name)
+            .Distinct();
 
-        Assert.NotNull(type.GetProperty("ResultUrl"));
-        Assert.NotNull(type.GetProperty("ReturnUrl"));
-
-        Assert.NotNull(type.GetMethod("CreateTransaction"));
-        Assert.NotNull(type.GetMethod("CreatePayment"));
-        Assert.NotNull(type.GetMethod("InitiateTransactionAsync"));
-        Assert.NotNull(type.GetMethod("MakeSeamlessPaymentAsync"));
-        Assert.NotNull(type.GetMethod("CheckPaymentStatusAsync"));
-        Assert.NotNull(type.GetMethod("PollTransactionAsync"));
-        Assert.NotNull(type.GetMethod("GetActiveCurrenciesAsync"));
-        Assert.NotNull(type.GetMethod("GetPaymentMethodsAsync"));
+        Assert.Contains(memberName, members);
     }
 }

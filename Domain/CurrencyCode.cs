@@ -5,7 +5,6 @@ namespace PesePay.Domain;
 
 /// <summary>
 /// Supported currencies for PesePay payments.
-/// PesePay currently supports USD and ZWL only.
 /// </summary>
 [JsonConverter(typeof(JsonStringEnumConverter))]
 public enum CurrencyCode
@@ -14,7 +13,11 @@ public enum CurrencyCode
     [EnumMember(Value = "USD")]
     USD,
 
-    /// <summary>Zimbabwe Dollar (ZWL)</summary>
+    /// <summary>Zimbabwe Gold</summary>
+    [EnumMember(Value = "ZiG")]
+    ZiG,
+
+    /// <summary>Zimbabwe Dollar (deprecated — replaced by ZiG)</summary>
     [EnumMember(Value = "ZWL")]
     ZWL
 }

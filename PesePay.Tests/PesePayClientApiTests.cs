@@ -215,6 +215,114 @@ public class PesePayClientApiTests
         Assert.Single(result.Data!);
         Assert.Equal("PZW211", result.Data![0].Code);
     }
+
+    [Fact]
+    public async Task InitiateTransactionAsync_Convenience_Sets_Urls()
+    {
+        var handler = new FakeHttpMessageHandler();
+        var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
+        var expectedResponse = new InitiateResponse("REF-CONV", new Uri("https://poll.example.com/REF-CONV"), new Uri("https://redirect.example.com/REF-CONV"), "INT-CONV", "INITIATED", 0, "Initiated");
+        var responseJson = JsonSerializer.Serialize(expectedResponse, ApiOptions);
+        var encryptedResponse = crypto.Encrypt(responseJson);
+        var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
+
+        handler.SetResponse(HttpStatusCode.OK, responsePayload);
+
+        var httpClient = new HttpClient(handler) { BaseAddress = new Uri("https://api.example.com") };
+        var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox);
+
+        var result = await client.InitiateTransactionAsync(
+            10m, CurrencyCode.USD, "Test reason", "MERCH-CONV",
+            resultUrl: "https://example.com/result",
+            returnUrl: "https://example.com/return");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("REF-CONV", result.Data!.ReferenceNumber);
+        Assert.Equal("https://example.com/result", client.ResultUrl);
+        Assert.Equal("https://example.com/return", client.ReturnUrl);
+    }
+
+    [Fact]
+    public async Task MakeSeamlessPaymentAsync_MobileMoney_Convenience_Succeeds()
+    {
+        var handler = new FakeHttpMessageHandler();
+        var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
+        var expectedResponse = new PaymentResponse("REF-MOBILE", new Uri("https://poll.example.com/REF-MOBILE"), null, "INT-MOBILE", "SUCCESS", 1, "Paid");
+        var responseJson = JsonSerializer.Serialize(expectedResponse, ApiOptions);
+        var encryptedResponse = crypto.Encrypt(responseJson);
+        var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
+
+        handler.SetResponse(HttpStatusCode.OK, responsePayload);
+
+        var httpClient = new HttpClient(handler);
+        var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox)
+        {
+            ResultUrl = "https://example.com/result"
+        };
+
+        var result = await client.MakeSeamlessPaymentAsync(
+            PaymentMethodCode.EcoCash, CurrencyCode.ZiG, 500m,
+            "0771234567", "John Doe", "Invoice #456", "ORDER-001");
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Data!.IsPaid);
+        Assert.Equal("REF-MOBILE", result.Data.ReferenceNumber);
+    }
+
+    [Fact]
+    public async Task MakeSeamlessCardPaymentAsync_Convenience_Succeeds()
+    {
+        var handler = new FakeHttpMessageHandler();
+        var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
+        var expectedResponse = new PaymentResponse("REF-CARD", new Uri("https://poll.example.com/REF-CARD"), null, "INT-CARD", "SUCCESS", 1, "Paid");
+        var responseJson = JsonSerializer.Serialize(expectedResponse, ApiOptions);
+        var encryptedResponse = crypto.Encrypt(responseJson);
+        var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
+
+        handler.SetResponse(HttpStatusCode.OK, responsePayload);
+
+        var httpClient = new HttpClient(handler);
+        var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox)
+        {
+            ResultUrl = "https://example.com/result"
+        };
+
+        var card = new CardDetails("4867960000005461", "608", "12/30", "John Doe");
+        var result = await client.MakeSeamlessCardPaymentAsync(
+            PaymentMethodCode.EcoCash, CurrencyCode.USD, 10m,
+            card, "john@example.com", "John Doe", "Card payment", "ORDER-CARD");
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Data!.IsPaid);
+        Assert.Equal("REF-CARD", result.Data.ReferenceNumber);
+    }
+
+    [Fact]
+    public async Task MakeSeamlessCardPaymentAsync_Without_HolderName()
+    {
+        var handler = new FakeHttpMessageHandler();
+        var crypto = new AesCbcPayloadCrypto("0123456789abcdef0123456789abcdef");
+        var expectedResponse = new PaymentResponse("REF-CARD2", new Uri("https://poll.example.com/REF-CARD2"), null, "INT-CARD2", "SUCCESS", 1, "Paid");
+        var responseJson = JsonSerializer.Serialize(expectedResponse, ApiOptions);
+        var encryptedResponse = crypto.Encrypt(responseJson);
+        var responsePayload = JsonSerializer.Serialize(new { payload = encryptedResponse });
+
+        handler.SetResponse(HttpStatusCode.OK, responsePayload);
+
+        var httpClient = new HttpClient(handler);
+        var client = new PesePayClient(crypto, httpClient, EnvironmentType.Sandbox)
+        {
+            ResultUrl = "https://example.com/result"
+        };
+
+        var card = new CardDetails("4867960000005461", "608", "12/30");
+        var result = await client.MakeSeamlessCardPaymentAsync(
+            PaymentMethodCode.EcoCash, CurrencyCode.USD, 10m,
+            card, "test@example.com", null, "Card payment", "ORDER-CARD2");
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Data!.IsPaid);
+    }
 }
 
 public class FakeHttpMessageHandler : HttpMessageHandler

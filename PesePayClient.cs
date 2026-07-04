@@ -56,6 +56,26 @@ public class PesePayClient : IPesePayClient
 
     private string MakePaymentPath => "v2/payments/make-payment";
 
+    private static readonly Dictionary<(PaymentMethodCode, CurrencyCode), string> _methodCodes = new()
+    {
+        [(PaymentMethodCode.EcoCash, CurrencyCode.USD)] = "PZW211",
+        [(PaymentMethodCode.EcoCash, CurrencyCode.ZiG)] = "PZW201",
+        [(PaymentMethodCode.InnBucks, CurrencyCode.USD)] = "PZW212",
+        [(PaymentMethodCode.Visa, CurrencyCode.USD)] = "PZW204",
+        [(PaymentMethodCode.MasterCard, CurrencyCode.USD)] = "PZW205",
+        [(PaymentMethodCode.Zimswitch, CurrencyCode.USD)] = "PZW215",
+        [(PaymentMethodCode.Omari, CurrencyCode.USD)] = "PZW216",
+        [(PaymentMethodCode.PayGo, CurrencyCode.ZiG)] = "PZW210",
+    };
+
+    private static string GetPaymentMethodCode(PaymentMethodCode method, CurrencyCode currency)
+    {
+        if (_methodCodes.TryGetValue((method, currency), out var code))
+            return code;
+
+        throw new PesePayException($"Payment method {method} is not available for {currency}.");
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response)
     {
         if (!response.IsSuccessStatusCode)
@@ -92,10 +112,24 @@ public class PesePayClient : IPesePayClient
             merchantRef);
     }
 
+    public Payment CreatePayment(CurrencyCode currency, PaymentMethodCode method, Customer customer)
+    {
+        return new Payment(currency, GetPaymentMethodCode(method, currency), customer);
+    }
+
     public Payment CreatePayment(CurrencyCode currency, string methodCode, string? email, string? phone, string? name)
     {
         var customer = new Customer(email, phone, name);
         return new Payment(currency, methodCode, customer);
+    }
+
+    public async Task<PesepayResult<InitiateResponse>> InitiateTransactionAsync(decimal amount, CurrencyCode currency, string reason, string? merchantReference, string resultUrl, string returnUrl, CancellationToken ct = default)
+    {
+        ResultUrl = resultUrl;
+        ReturnUrl = returnUrl;
+
+        var transaction = CreateTransaction(amount, currency, reason, merchantReference);
+        return await InitiateTransactionAsync(transaction, ct);
     }
 
     public async Task<PesepayResult<InitiateResponse>> InitiateTransactionAsync(Transaction transaction, CancellationToken ct = default)
@@ -131,6 +165,37 @@ public class PesePayClient : IPesePayClient
         {
             throw new PesePayException(ex.Message, ex);
         }
+    }
+
+    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, string phoneNumber, string? customerName, string reason, string merchantReference, CancellationToken ct = default)
+    {
+        var customer = new Customer(null, phoneNumber, customerName);
+        var payment = CreatePayment(currency, method, customer);
+
+        var fields = new Dictionary<string, string>
+        {
+            { "customerPhoneNumber", phoneNumber }
+        };
+
+        return await MakeSeamlessPaymentAsync(payment, reason, amount, merchantReference, fields, ct);
+    }
+
+    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessCardPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, CardDetails card, string? email, string? customerName, string reason, string merchantReference, CancellationToken ct = default)
+    {
+        var customer = new Customer(email, null, customerName);
+        var payment = CreatePayment(currency, method, customer);
+
+        var fields = new Dictionary<string, string>
+        {
+            { "creditCardNumber", card.Number },
+            { "creditCardSecurityNumber", card.Cvv },
+            { "creditCardExpiryDate", card.ExpiryDate }
+        };
+
+        if (!string.IsNullOrEmpty(card.HolderName))
+            fields["creditCardHolder"] = card.HolderName;
+
+        return await MakeSeamlessPaymentAsync(payment, reason, amount, merchantReference, fields, ct);
     }
 
     public async Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(Payment payment, string reason, decimal amount, string merchantReference, Dictionary<string, string>? fields = null, CancellationToken ct = default)

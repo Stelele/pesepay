@@ -40,4 +40,54 @@ public class PesePayClientFactoryTests
         Assert.Equal("a@b.com", payment.Customer.Email);
         Assert.Null(payment.Customer.PhoneNumber);
     }
+
+    [Fact]
+    public void CreatePayment_With_Enum_Uses_Correct_Code()
+    {
+        var customer = new Customer("a@b.com", "0771234567", "John");
+        var payment = _client.CreatePayment(CurrencyCode.USD, PaymentMethodCode.EcoCash, customer);
+
+        Assert.Equal("PZW211", payment.PaymentMethodCode);
+        Assert.Equal(CurrencyCode.USD, payment.CurrencyCode);
+        Assert.Equal("John", payment.Customer.Name);
+    }
+
+    [Fact]
+    public void CreatePayment_With_InnBucks_Enum_Uses_Correct_Code()
+    {
+        var customer = new Customer(null, "0771234567", "Jane");
+        var payment = _client.CreatePayment(CurrencyCode.USD, PaymentMethodCode.InnBucks, customer);
+
+        Assert.Equal("PZW212", payment.PaymentMethodCode);
+    }
+
+    [Fact]
+    public void CreatePayment_EcoCash_ZiG_Uses_Correct_Code()
+    {
+        var customer = new Customer("a@b.com", "0771234567", "John");
+        var payment = _client.CreatePayment(CurrencyCode.ZiG, PaymentMethodCode.EcoCash, customer);
+
+        Assert.Equal("PZW201", payment.PaymentMethodCode);
+    }
+
+    [Theory]
+    [InlineData(PaymentMethodCode.Visa, CurrencyCode.USD, "PZW204")]
+    [InlineData(PaymentMethodCode.MasterCard, CurrencyCode.USD, "PZW205")]
+    [InlineData(PaymentMethodCode.Zimswitch, CurrencyCode.USD, "PZW215")]
+    [InlineData(PaymentMethodCode.Omari, CurrencyCode.USD, "PZW216")]
+    [InlineData(PaymentMethodCode.PayGo, CurrencyCode.ZiG, "PZW210")]
+    public void CreatePayment_Enum_Resolves_Correct_Code(PaymentMethodCode method, CurrencyCode currency, string expectedCode)
+    {
+        var customer = new Customer("a@b.com", "0771234567", "Test");
+        var payment = _client.CreatePayment(currency, method, customer);
+
+        Assert.Equal(expectedCode, payment.PaymentMethodCode);
+    }
+
+    [Fact]
+    public void CreatePayment_Enum_Throws_When_Unsupported_Combination()
+    {
+        var customer = new Customer("a@b.com", "0771234567", "Test");
+        Assert.Throws<PesePayException>(() => _client.CreatePayment(CurrencyCode.ZWL, PaymentMethodCode.EcoCash, customer));
+    }
 }
