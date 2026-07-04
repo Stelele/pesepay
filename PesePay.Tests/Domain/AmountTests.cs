@@ -17,8 +17,8 @@ public class AmountTests
 
         var json = JsonSerializer.Serialize(amount, options);
 
-        Assert.Contains("\"value\":10.50", json);
-        Assert.Contains("\"currency\":\"usd\"", json);
+        Assert.Contains("\"amount\":10.50", json);
+        Assert.Contains("\"currencyCode\":\"usd\"", json);
     }
 
     [Fact]

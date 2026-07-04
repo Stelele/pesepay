@@ -18,7 +18,6 @@ public class PesePayClientFactoryTests
         Assert.Equal(CurrencyCode.USD, txn.AmountDetails.Currency);
         Assert.Equal("Payment for order", txn.ReasonForPayment);
         Assert.Equal("ORDER-001", txn.MerchantReference);
-        Assert.Equal(TransactionType.Basic, txn.Type);
     }
 
     [Fact]

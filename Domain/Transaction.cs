@@ -1,5 +1,3 @@
-using System.Text.Json.Serialization;
-
 namespace PesePay.Domain;
 
 /// <summary>
@@ -8,13 +6,10 @@ namespace PesePay.Domain;
 /// <param name="AmountDetails">The payment amount and currency.</param>
 /// <param name="ReasonForPayment">Description of what the payment is for.</param>
 /// <param name="MerchantReference">Optional merchant-defined reference for the transaction.</param>
-/// <param name="Type">Transaction type. Currently always <see cref="TransactionType.Basic"/>.</param>
 public record Transaction(
     Amount AmountDetails,
     string ReasonForPayment,
-    string? MerchantReference = null,
-    [property: JsonPropertyName("transaction_type")]
-    TransactionType Type = TransactionType.Basic)
+    string? MerchantReference = null)
 {
     /// <summary>
     /// The URL PesePay will POST the payment result to. Set by <see cref="IPesePayClient"/> before initiating.

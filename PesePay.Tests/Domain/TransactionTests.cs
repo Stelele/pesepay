@@ -13,16 +13,6 @@ public class TransactionTests
     };
 
     [Fact]
-    public void Transaction_Default_Type_Is_Basic()
-    {
-        var txn = new Transaction(
-            new Amount(10m, CurrencyCode.USD),
-            "Test payment");
-
-        Assert.Equal(TransactionType.Basic, txn.Type);
-    }
-
-    [Fact]
     public void Transaction_Serializes_With_SnakeCase()
     {
         var txn = new Transaction(
@@ -33,10 +23,10 @@ public class TransactionTests
         var json = JsonSerializer.Serialize(txn, ApiOptions);
 
         Assert.Contains("\"amount_details\"", json);
-        Assert.Contains("\"currency\":\"usd\"", json);
+        Assert.Contains("\"amount\":10", json);
+        Assert.Contains("\"currencyCode\":\"usd\"", json);
         Assert.Contains("\"reason_for_payment\":\"Test payment\"", json);
         Assert.Contains("\"merchant_reference\":\"MERCH001\"", json);
-        Assert.Contains("\"transaction_type\":\"basic\"", json);
     }
 
     [Fact]

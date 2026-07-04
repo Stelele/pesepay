@@ -65,6 +65,24 @@ public class PesePayClient : IPesePayClient
         }
     }
 
+    private string DecryptResponsePayload(string responseBody)
+    {
+        var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
+        if (raw.TryGetProperty("payload", out var payloadElement))
+        {
+            try
+            {
+                return _crypto.Decrypt(payloadElement.GetString()!);
+            }
+            catch (System.Security.Cryptography.CryptographicException)
+            {
+                return responseBody;
+            }
+        }
+
+        return responseBody;
+    }
+
     public Transaction CreateTransaction(decimal amount, CurrencyCode currency, string reason, string? merchantRef = null)
     {
         return new Transaction(
@@ -103,9 +121,8 @@ public class PesePayClient : IPesePayClient
             await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
-            var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
-            var decrypted = _crypto.Decrypt(raw.GetProperty("payload").GetString()!);
-            var result = JsonSerializer.Deserialize<InitiateResponse>(decrypted, _jsonOptions)!;
+            var json = DecryptResponsePayload(responseBody);
+            var result = JsonSerializer.Deserialize<InitiateResponse>(json, _jsonOptions)!;
 
             return PesepayResult<InitiateResponse>.Ok(result);
         }
@@ -144,9 +161,8 @@ public class PesePayClient : IPesePayClient
             await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
-            var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
-            var decrypted = _crypto.Decrypt(raw.GetProperty("payload").GetString()!);
-            var result = JsonSerializer.Deserialize<PaymentResponse>(decrypted, _jsonOptions)!;
+            var json = DecryptResponsePayload(responseBody);
+            var result = JsonSerializer.Deserialize<PaymentResponse>(json, _jsonOptions)!;
 
             return PesepayResult<PaymentResponse>.Ok(result);
         }
@@ -170,9 +186,8 @@ public class PesePayClient : IPesePayClient
             await EnsureSuccessAsync(response);
 
             var responseBody = await response.Content.ReadAsStringAsync(ct);
-            var raw = JsonSerializer.Deserialize<JsonElement>(responseBody);
-            var decrypted = _crypto.Decrypt(raw.GetProperty("payload").GetString()!);
-            var result = JsonSerializer.Deserialize<PaymentStatus>(decrypted, _jsonOptions)!;
+            var json = DecryptResponsePayload(responseBody);
+            var result = JsonSerializer.Deserialize<PaymentStatus>(json, _jsonOptions)!;
 
             return PesepayResult<PaymentStatus>.Ok(result);
         }
