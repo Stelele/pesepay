@@ -167,9 +167,9 @@ public class PesePayClient : IPesePayClient
         }
     }
 
-    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, string phoneNumber, string? customerName, string reason, string merchantReference, CancellationToken ct = default)
+    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, string phoneNumber, string email, string? customerName, string reason, string merchantReference, CancellationToken ct = default)
     {
-        var customer = new Customer(null, phoneNumber, customerName);
+        var customer = new Customer(email, phoneNumber, customerName);
         var payment = CreatePayment(currency, method, customer);
 
         var fields = new Dictionary<string, string>

@@ -82,7 +82,7 @@ public interface IPesePayClient
     /// <param name="merchantReference">Your merchant reference for this transaction (required).</param>
     /// <param name="ct">Cancellation token.</param>
     /// <returns>A result containing the reference number, poll URL, and payment status on success.</returns>
-    Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, string phoneNumber, string? customerName, string reason, string merchantReference, CancellationToken ct = default);
+    Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, string phoneNumber, string email, string? customerName, string reason, string merchantReference, CancellationToken ct = default);
 
     /// <summary>
     /// Makes a seamless card payment with typed card details.
