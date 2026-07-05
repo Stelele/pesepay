@@ -11,11 +11,7 @@ public static class ServiceCollectionExtensions
         var config = new PesePayConfiguration();
         configure(config);
 
-        var client = new PesePayClient(config.IntegrationKey, config.EncryptionKey, config.Environment)
-        {
-            ResultUrl = config.ResultUrl,
-            ReturnUrl = config.ReturnUrl
-        };
+        var client = new PesePayClient(config.IntegrationKey, config.EncryptionKey, config.Environment, config.ResultUrl, config.ReturnUrl);
 
         services.AddSingleton<IPesePayClient>(client);
         return services;
@@ -26,11 +22,7 @@ public static class ServiceCollectionExtensions
         var config = new PesePayConfiguration();
         configuration.Bind(config);
 
-        var client = new PesePayClient(config.IntegrationKey, config.EncryptionKey, config.Environment)
-        {
-            ResultUrl = config.ResultUrl,
-            ReturnUrl = config.ReturnUrl
-        };
+        var client = new PesePayClient(config.IntegrationKey, config.EncryptionKey, config.Environment, config.ResultUrl, config.ReturnUrl);
 
         services.AddSingleton<IPesePayClient>(client);
         return services;

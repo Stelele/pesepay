@@ -5,15 +5,10 @@ namespace PesePay.Tests;
 public class IPesePayClientTests
 {
     [Theory]
-    [InlineData("ResultUrl")]
-    [InlineData("ReturnUrl")]
-    [InlineData("CreateTransaction")]
-    [InlineData("CreatePayment")]
-    [InlineData("InitiateTransactionAsync")]
-    [InlineData("MakeSeamlessPaymentAsync")]
-    [InlineData("MakeSeamlessCardPaymentAsync")]
+    [InlineData("InitiateRedirectPaymentAsync")]
+    [InlineData("InitiateSeamlessPaymentAsync")]
     [InlineData("CheckPaymentStatusAsync")]
-    [InlineData("PollTransactionAsync")]
+    [InlineData("PollPaymentAsync")]
     [InlineData("GetActiveCurrenciesAsync")]
     [InlineData("GetPaymentMethodsAsync")]
     public void Interface_Defines_Member(string memberName)

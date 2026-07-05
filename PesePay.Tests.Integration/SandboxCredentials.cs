@@ -21,6 +21,14 @@ public static class SandboxCredentials
         return new PesePayClient(IntegrationKey, EncryptionKey, EnvironmentType.Sandbox);
     }
 
+    public static PesePayClient CreateClientWithUrls()
+    {
+        return new PesePayClient(
+            IntegrationKey, EncryptionKey, EnvironmentType.Sandbox,
+            resultUrl: ResultUrl,
+            returnUrl: ReturnUrl);
+    }
+
     public static void PrintConfigurationBanner()
     {
         Console.WriteLine("=== PesePay Sandbox Integration Tests ===");

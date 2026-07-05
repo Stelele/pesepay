@@ -20,15 +20,21 @@ public class PesePayClient : IPesePayClient
     private readonly EnvironmentType _environment;
     private readonly IPayloadCrypto _crypto;
     private readonly HttpClient _httpClient;
+    private readonly string? _resultUrl;
+    private readonly string? _returnUrl;
 
-    public string? ResultUrl { get; set; }
-    public string? ReturnUrl { get; set; }
-
-    public PesePayClient(string integrationKey, string encryptionKey, EnvironmentType environment = EnvironmentType.Sandbox)
+    public PesePayClient(
+        string integrationKey,
+        string encryptionKey,
+        EnvironmentType environment = EnvironmentType.Sandbox,
+        string? resultUrl = null,
+        string? returnUrl = null)
     {
         _integrationKey = integrationKey;
         _environment = environment;
         _crypto = new AesCbcPayloadCrypto(encryptionKey);
+        _resultUrl = resultUrl;
+        _returnUrl = returnUrl;
 
         _httpClient = new HttpClient
         {
@@ -38,13 +44,20 @@ public class PesePayClient : IPesePayClient
         _httpClient.DefaultRequestHeaders.Add("authorization", integrationKey);
     }
 
-    internal PesePayClient(IPayloadCrypto crypto, HttpClient httpClient, EnvironmentType environment = EnvironmentType.Sandbox)
+    internal PesePayClient(
+        IPayloadCrypto crypto,
+        HttpClient httpClient,
+        EnvironmentType environment = EnvironmentType.Sandbox,
+        string? resultUrl = null,
+        string? returnUrl = null)
     {
         _crypto = crypto;
         _httpClient = httpClient;
         _httpClient.BaseAddress ??= new Uri(GetBaseUrl(environment));
         _environment = environment;
         _integrationKey = string.Empty;
+        _resultUrl = resultUrl;
+        _returnUrl = returnUrl;
     }
 
     private static string GetBaseUrl(EnvironmentType environment) => environment switch
@@ -68,7 +81,7 @@ public class PesePayClient : IPesePayClient
         [(PaymentMethodCode.PayGo, CurrencyCode.ZiG)] = "PZW210",
     };
 
-    private static string GetPaymentMethodCode(PaymentMethodCode method, CurrencyCode currency)
+    internal static string GetPaymentMethodCode(PaymentMethodCode method, CurrencyCode currency)
     {
         if (_methodCodes.TryGetValue((method, currency), out var code))
             return code;
@@ -104,44 +117,23 @@ public class PesePayClient : IPesePayClient
         return responseBody;
     }
 
-    public Transaction CreateTransaction(decimal amount, CurrencyCode currency, string reason, string? merchantRef = null)
+    public async Task<PesepayResult<InitiateResponse>> InitiateRedirectPaymentAsync(
+        RedirectPaymentRequest request, CancellationToken ct = default)
     {
-        return new Transaction(
-            new Amount(amount, currency),
-            reason,
-            merchantRef);
-    }
-
-    public Payment CreatePayment(CurrencyCode currency, PaymentMethodCode method, Customer customer)
-    {
-        return new Payment(currency, GetPaymentMethodCode(method, currency), customer);
-    }
-
-    public Payment CreatePayment(CurrencyCode currency, string methodCode, string? email, string? phone, string? name)
-    {
-        var customer = new Customer(email, phone, name);
-        return new Payment(currency, methodCode, customer);
-    }
-
-    public async Task<PesepayResult<InitiateResponse>> InitiateTransactionAsync(decimal amount, CurrencyCode currency, string reason, string? merchantReference, string resultUrl, string returnUrl, CancellationToken ct = default)
-    {
-        ResultUrl = resultUrl;
-        ReturnUrl = returnUrl;
-
-        var transaction = CreateTransaction(amount, currency, reason, merchantReference);
-        return await InitiateTransactionAsync(transaction, ct);
-    }
-
-    public async Task<PesepayResult<InitiateResponse>> InitiateTransactionAsync(Transaction transaction, CancellationToken ct = default)
-    {
-        if (string.IsNullOrEmpty(ResultUrl))
+        if (string.IsNullOrEmpty(_resultUrl))
             throw new PesePayException("Result URL has not been specified.");
 
-        if (string.IsNullOrEmpty(ReturnUrl))
+        if (string.IsNullOrEmpty(_returnUrl))
             throw new PesePayException("Return URL has not been specified.");
 
-        transaction.ResultUrl = ResultUrl;
-        transaction.ReturnUrl = ReturnUrl;
+        var transaction = new Transaction(
+            new Amount(request.Amount, request.Currency),
+            request.Reason,
+            request.MerchantReference)
+        {
+            ResultUrl = _resultUrl,
+            ReturnUrl = _returnUrl
+        };
 
         var payload = _crypto.Encrypt(JsonSerializer.Serialize(transaction, _jsonOptions));
 
@@ -167,52 +159,45 @@ public class PesePayClient : IPesePayClient
         }
     }
 
-    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, string phoneNumber, string email, string? customerName, string reason, string merchantReference, CancellationToken ct = default)
+    public async Task<PesepayResult<PaymentResponse>> InitiateSeamlessPaymentAsync(
+        SeamlessPaymentRequest request, CancellationToken ct = default)
     {
-        var customer = new Customer(email, phoneNumber, customerName);
-        var payment = CreatePayment(currency, method, customer);
-
-        var fields = new Dictionary<string, string>
-        {
-            { "customerPhoneNumber", phoneNumber }
-        };
-
-        return await MakeSeamlessPaymentAsync(payment, reason, amount, merchantReference, fields, ct);
-    }
-
-    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessCardPaymentAsync(PaymentMethodCode method, CurrencyCode currency, decimal amount, CardDetails card, string? email, string? customerName, string reason, string merchantReference, CancellationToken ct = default)
-    {
-        var customer = new Customer(email, null, customerName);
-        var payment = CreatePayment(currency, method, customer);
-
-        var fields = new Dictionary<string, string>
-        {
-            { "creditCardNumber", card.Number },
-            { "creditCardSecurityNumber", card.Cvv },
-            { "creditCardExpiryDate", card.ExpiryDate }
-        };
-
-        if (!string.IsNullOrEmpty(card.HolderName))
-            fields["creditCardHolder"] = card.HolderName;
-
-        return await MakeSeamlessPaymentAsync(payment, reason, amount, merchantReference, fields, ct);
-    }
-
-    public async Task<PesepayResult<PaymentResponse>> MakeSeamlessPaymentAsync(Payment payment, string reason, decimal amount, string merchantReference, Dictionary<string, string>? fields = null, CancellationToken ct = default)
-    {
-        if (string.IsNullOrEmpty(ResultUrl))
+        if (string.IsNullOrEmpty(_resultUrl))
             throw new PesePayException("Result URL has not been specified.");
 
-        payment.ResultUrl = ResultUrl;
-        payment.ReturnUrl = ReturnUrl;
-        payment.ReasonForPayment = reason;
-        payment.AmountDetails = new Amount(amount, payment.CurrencyCode);
-        payment.MerchantReference = merchantReference;
-        if (fields != null)
+        var methodCode = GetPaymentMethodCode(request.Method, request.Currency);
+        var customer = new Customer(request.Email, request.PhoneNumber, request.CustomerName);
+        var payment = new Payment(request.Currency, methodCode, customer)
         {
-            payment.PaymentMethodRequiredFields = fields;
-            payment.PaymentRequestFields = fields;
+            ResultUrl = _resultUrl,
+            ReturnUrl = _returnUrl,
+            ReasonForPayment = request.Reason,
+            AmountDetails = new Amount(request.Amount, request.Currency),
+            MerchantReference = request.MerchantReference
+        };
+
+        var fields = new Dictionary<string, string>();
+
+        if (request.Card != null)
+        {
+            fields["creditCardNumber"] = request.Card.Number;
+            fields["creditCardSecurityNumber"] = request.Card.Cvv;
+            fields["creditCardExpiryDate"] = request.Card.ExpiryDate;
+            if (!string.IsNullOrEmpty(request.Card.HolderName))
+                fields["creditCardHolder"] = request.Card.HolderName;
         }
+        else if (!string.IsNullOrEmpty(request.PhoneNumber))
+        {
+            fields["customerPhoneNumber"] = request.PhoneNumber;
+        }
+        else
+        {
+            throw new PesePayException(
+                "Seamless payment requires either a Card (for card payments) or PhoneNumber (for mobile money).");
+        }
+
+        payment.PaymentMethodRequiredFields = fields;
+        payment.PaymentRequestFields = fields;
 
         var payload = _crypto.Encrypt(JsonSerializer.Serialize(payment, _jsonOptions));
 
@@ -238,13 +223,15 @@ public class PesePayClient : IPesePayClient
         }
     }
 
-    public async Task<PesepayResult<PaymentStatus>> CheckPaymentStatusAsync(string referenceNumber, CancellationToken ct = default)
+    public async Task<PesepayResult<PaymentStatus>> CheckPaymentStatusAsync(
+        string referenceNumber, CancellationToken ct = default)
     {
         var url = $"v1/payments/check-payment?referenceNumber={Uri.EscapeDataString(referenceNumber)}";
-        return await PollTransactionAsync(new Uri(url, UriKind.Relative), ct);
+        return await PollPaymentAsync(new Uri(url, UriKind.Relative), ct);
     }
 
-    public async Task<PesepayResult<PaymentStatus>> PollTransactionAsync(Uri pollUrl, CancellationToken ct = default)
+    public async Task<PesepayResult<PaymentStatus>> PollPaymentAsync(
+        Uri pollUrl, CancellationToken ct = default)
     {
         try
         {
@@ -263,7 +250,8 @@ public class PesePayClient : IPesePayClient
         }
     }
 
-    public async Task<PesepayResult<List<CurrencyInfo>>> GetActiveCurrenciesAsync(CancellationToken ct = default)
+    public async Task<PesepayResult<List<CurrencyInfo>>> GetActiveCurrenciesAsync(
+        CancellationToken ct = default)
     {
         try
         {
@@ -281,7 +269,8 @@ public class PesePayClient : IPesePayClient
         }
     }
 
-    public async Task<PesepayResult<List<PaymentMethodInfo>>> GetPaymentMethodsAsync(string currencyCode, CancellationToken ct = default)
+    public async Task<PesepayResult<List<PaymentMethodInfo>>> GetPaymentMethodsAsync(
+        string currencyCode, CancellationToken ct = default)
     {
         try
         {
