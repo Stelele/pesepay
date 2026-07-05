@@ -16,8 +16,6 @@ public class PesePayClient : IPesePayClient
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-    private readonly string _integrationKey;
-    private readonly EnvironmentType _environment;
     private readonly IPayloadCrypto _crypto;
     private readonly HttpClient _httpClient;
     private readonly string? _resultUrl;
@@ -30,8 +28,6 @@ public class PesePayClient : IPesePayClient
         string? resultUrl = null,
         string? returnUrl = null)
     {
-        _integrationKey = integrationKey;
-        _environment = environment;
         _crypto = new AesCbcPayloadCrypto(encryptionKey);
         _resultUrl = resultUrl;
         _returnUrl = returnUrl;
@@ -54,8 +50,6 @@ public class PesePayClient : IPesePayClient
         _crypto = crypto;
         _httpClient = httpClient;
         _httpClient.BaseAddress ??= new Uri(GetBaseUrl(environment));
-        _environment = environment;
-        _integrationKey = string.Empty;
         _resultUrl = resultUrl;
         _returnUrl = returnUrl;
     }

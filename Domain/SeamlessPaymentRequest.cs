@@ -20,7 +20,7 @@ public record SeamlessPaymentRequest(
     decimal Amount,
     string Reason,
     string MerchantReference,
-    string? Email = null,
+    string Email,
     string? CustomerName = null,
     string? PhoneNumber = null,
     CardDetails? Card = null);
