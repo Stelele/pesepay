@@ -1,0 +1,10 @@
+- name: Home
+  href: index.md
+- name: API Reference
+  items:
+    - name: PesePay
+      href: api/PesePay.yml
+    - name: PesePay.Domain
+      href: api/PesePay.Domain.yml
+    - name: PesePay.Crypto
+      href: api/PesePay.Crypto.yml

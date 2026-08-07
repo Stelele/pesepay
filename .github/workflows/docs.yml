@@ -2,7 +2,7 @@ name: Docs
 
 on:
   push:
-    branches: [master]
+    branches: [main, master]
 
 permissions:
   contents: read
@@ -32,6 +32,9 @@ jobs:
 
       - name: Build site
         run: ~/.dotnet/tools/docfx build docfx.json
+
+      - name: Remove conflicting search index (prevents index.json overriding index.html)
+        run: rm -f _site/index.json _site/toc.json
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

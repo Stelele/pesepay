@@ -23,14 +23,19 @@
       },
       {
         "files": ["api/index.md"]
+      },
+      {
+        "files": ["index.md", "toc.yml"]
       }
     ],
     "output": "_site",
     "globalMetadata": {
       "_appTitle": "PesePay for .NET",
       "_appFooter": "PesePay .NET Library",
-      "_enableSearch": true
+      "_enableSearch": true,
+      "_disableContribution": true
     },
-    "template": ["default", "modern"]
+    "template": ["default", "modern"],
+    "noRefError": true
   }
 }
