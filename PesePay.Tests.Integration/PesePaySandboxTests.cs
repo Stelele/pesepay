@@ -161,6 +161,10 @@ public class SandboxSeamlessPaymentTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
+        if (string.IsNullOrEmpty(SandboxCredentials.IntegrationKey) ||
+            string.IsNullOrEmpty(SandboxCredentials.EncryptionKey))
+            return;
+
         _client = SandboxCredentials.CreateClientWithUrls();
 
         var usdResult = await _client.GetPaymentMethodsAsync("USD");
@@ -311,6 +315,7 @@ public class SandboxSeamlessPaymentTests : IAsyncLifetime
         var request = new SeamlessPaymentRequest(
             PaymentMethodCode.EcoCash, CurrencyCode.USD, 10m,
             "test", "MERCH01",
+            Email: "test@example.com",
             PhoneNumber: "0777777777");
 
         await Assert.ThrowsAsync<PesePayException>(

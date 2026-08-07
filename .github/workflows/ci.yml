@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore PesePay.sln
+
+      - name: Build
+        run: dotnet build PesePay.sln -c Release --no-restore
+
+      - name: Unit Tests
+        run: dotnet test PesePay.Tests/PesePay.Tests.csproj -c Release --no-build --logger "console;verbosity=detailed"
+
+      - name: Integration Tests
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        timeout-minutes: 5
+        env:
+          PESEPAY_SANDBOX_INTEGRATION_KEY: ${{ secrets.PESEPAY_SANDBOX_INTEGRATION_KEY }}
+          PESEPAY_SANDBOX_ENCRYPTION_KEY: ${{ secrets.PESEPAY_SANDBOX_ENCRYPTION_KEY }}
+          PESEPAY_SANDBOX_RESULT_URL: ${{ secrets.PESEPAY_SANDBOX_RESULT_URL }}
+          PESEPAY_SANDBOX_RETURN_URL: ${{ secrets.PESEPAY_SANDBOX_RETURN_URL }}
+        run: |
+          if [ -z "$PESEPAY_SANDBOX_INTEGRATION_KEY" ] || [ -z "$PESEPAY_SANDBOX_ENCRYPTION_KEY" ]; then
+            if [[ "${{ github.ref }}" == refs/tags/* ]] && [[ "${{ github.ref }}" != *-* ]]; then
+              echo "::error::Sandbox secrets required for release tags. Configure PESEPAY_SANDBOX_INTEGRATION_KEY and PESEPAY_SANDBOX_ENCRYPTION_KEY."
+              exit 1
+            fi
+            echo "::warning::Sandbox secrets not configured — skipping integration tests."
+            exit 0
+          fi
+          dotnet test PesePay.Tests.Integration/PesePay.Tests.Integration.csproj -c Release --no-build --logger "console;verbosity=detailed"
+
+      - name: Pack
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+        run: dotnet pack PesePay.csproj -c Release --no-build -o ./nupkg
+
+      - name: Validate version
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/v}"
+          EXPECTED="Stelele.PesePay.${TAG_VERSION}.nupkg"
+          ls "./nupkg/$EXPECTED" || (echo "::error::Version mismatch: expected $EXPECTED" && exit 1)
+
+      - name: NuGet login
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to NuGet
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-')
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push ./nupkg/*.snupkg --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate

@@ -103,6 +103,7 @@ public class PesePayClientApiTests
         var request = new SeamlessPaymentRequest(
             PaymentMethodCode.EcoCash, CurrencyCode.ZiG, 500m,
             "Invoice #456", "ORDER-001",
+            Email: "john@example.com",
             CustomerName: "John Doe",
             PhoneNumber: "0771234567");
 
@@ -203,6 +204,7 @@ public class PesePayClientApiTests
         var request = new SeamlessPaymentRequest(
             PaymentMethodCode.Visa, CurrencyCode.USD, 10m,
             "Card payment", "ORDER-PRIORITY",
+            Email: "john@example.com",
             PhoneNumber: "0771234567",
             Card: card);
 
@@ -224,7 +226,8 @@ public class PesePayClientApiTests
 
         var request = new SeamlessPaymentRequest(
             PaymentMethodCode.EcoCash, CurrencyCode.USD, 10m,
-            "Test", "ORDER-001");
+            "Test", "ORDER-001",
+            Email: "test@example.com");
 
         await Assert.ThrowsAsync<PesePayException>(
             () => client.InitiateSeamlessPaymentAsync(request));
@@ -241,6 +244,7 @@ public class PesePayClientApiTests
         var request = new SeamlessPaymentRequest(
             PaymentMethodCode.EcoCash, CurrencyCode.USD, 10m,
             "Test", "MERCH01",
+            Email: "test@example.com",
             PhoneNumber: "0777777777");
 
         await Assert.ThrowsAsync<PesePayException>(

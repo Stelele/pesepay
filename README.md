@@ -5,7 +5,7 @@ A .NET library for integrating with the PesePay payment gateway. Supports redire
 ## Installation
 
 ```shell
-dotnet add package PesePay
+dotnet add package Stelele.PesePay
 ```
 
 ## Getting Started
