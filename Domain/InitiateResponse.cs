@@ -1,7 +1,7 @@
 namespace PesePay.Domain;
 
 /// <summary>
-/// Response from <see cref="IPesePayClient.InitiateTransactionAsync"/>.
+/// Response from <see cref="IPesePayClient.InitiateRedirectPaymentAsync"/>.
 /// </summary>
 /// <param name="ReferenceNumber">The payment reference number for status checking.</param>
 /// <param name="PollUrl">URL to poll for payment status updates.</param>

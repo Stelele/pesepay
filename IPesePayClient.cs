@@ -7,7 +7,7 @@ namespace PesePay;
 /// Supports redirect payments, seamless payments, and payment status checking.
 /// </summary>
 /// <remarks>
-/// Use <see cref="ServiceCollectionExtensions.AddPesePay(IServiceCollection, Action{PesePayConfiguration})"/>
+/// Use <see cref="ServiceCollectionExtensions.AddPesePay(Microsoft.Extensions.DependencyInjection.IServiceCollection, Action{PesePayConfiguration})"/>
 /// for ASP.NET Core dependency injection, or construct directly with integration/encryption keys.
 /// </remarks>
 public interface IPesePayClient

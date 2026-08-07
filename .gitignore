@@ -52,3 +52,10 @@ package.json
 
 # Integration test secrets
 *.sandbox.env
+
+# docfx output
+_site/
+docfx_project/
+api/*.yml
+api/.manifest
+!api/index.md

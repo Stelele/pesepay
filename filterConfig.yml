@@ -1,0 +1,7 @@
+apiRules:
+- exclude:
+    uidRegex: ^PesePay\.Tests
+    type: Namespace
+- exclude:
+    uidRegex: ^PesePay\.Tests\.Integration
+    type: Namespace

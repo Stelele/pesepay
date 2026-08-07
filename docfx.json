@@ -1,0 +1,36 @@
+{
+  "$schema": "https://dotnet.github.io/docfx/schemas/docfx.schema.json",
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": ".",
+          "files": ["PesePay.csproj"]
+        }
+      ],
+      "dest": "api",
+      "disableDefaultFilter": false,
+      "filter": "filterConfig.yml",
+      "properties": {
+        "TargetFramework": "net10.0"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": ["api/**.yml"]
+      },
+      {
+        "files": ["api/index.md"]
+      }
+    ],
+    "output": "_site",
+    "globalMetadata": {
+      "_appTitle": "PesePay for .NET",
+      "_appFooter": "PesePay .NET Library",
+      "_enableSearch": true
+    },
+    "template": ["default", "modern"]
+  }
+}
